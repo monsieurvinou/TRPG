@@ -6,15 +6,16 @@ using UnityEngine;
 
 public class BoardCreator : MonoBehaviour
 {
+    public string fileName = "UNNAMED_LEVEL";
+    [SerializeField] GameObject marker;
     [SerializeField] int width = 10;
     [SerializeField] int depth = 10;
     [SerializeField] int height = 8;
     [SerializeField] GameObject tileViewPrefab;
-    [SerializeField] GameObject tileSelectionIndicatorPrefab;
-    [SerializeField] Point pos;
-    [SerializeField] LevelData levelData;
+    protected Point[] positions;
+    public LevelData fileToLoad;
+    
     Dictionary<Point, Tile> tiles = new Dictionary<Point, Tile>();
-    Transform _marker;
 
     /// <summary>
     /// Grow the tiles of the entire board
@@ -22,7 +23,7 @@ public class BoardCreator : MonoBehaviour
     public void GrowAll()
     {
         Rect rectangle = new Rect(0, 0, width, depth);
-        GrowRect(rectangle);
+        LevelRect(rectangle);
     }
 
     /// <summary>
@@ -31,7 +32,7 @@ public class BoardCreator : MonoBehaviour
     public void ShrinkAll()
     {
         Rect rectangle = new Rect(0, 0, width, depth);
-        ShrinkRect(rectangle);
+        LevelRect(rectangle, -1);
     }
 
     /// <summary>
@@ -40,7 +41,7 @@ public class BoardCreator : MonoBehaviour
     public void GrowArea()
     {
         Rect r = RandomRect();
-        GrowRect(r);
+        LevelRect(r);
     }
 
     /// <summary>
@@ -49,7 +50,7 @@ public class BoardCreator : MonoBehaviour
     public void ShrinkArea()
     {
         Rect r = RandomRect();
-        ShrinkRect(r);
+        LevelRect(r, -1);
     }
 
     /// <summary>
@@ -57,7 +58,7 @@ public class BoardCreator : MonoBehaviour
     /// </summary>
     public void Grow()
     {
-        GrowSingle(pos);
+        LevelMultiple(positions);
     }
 
     /// <summary>
@@ -65,7 +66,7 @@ public class BoardCreator : MonoBehaviour
     /// </summary>
     public void Shrink()
     {
-        ShrinkSingle(pos);
+        LevelMultiple(positions, -1);
     }
 
     /// <summary>
@@ -73,8 +74,15 @@ public class BoardCreator : MonoBehaviour
     /// </summary>
     public void UpdateMarker()
     {
-        Tile tile = tiles.ContainsKey(pos) ? tiles[pos] : null;
-        marker.localPosition = tile != null ? tile.center : new Vector3(pos.x, 0, pos.y);
+        if (marker != null)
+        {
+            if (this.positions != null)
+            {
+                Point position = this.positions.Length > 0 ? this.positions[0] : new Point(0, 0);
+                Tile tile = tiles.ContainsKey(position) ? tiles[position] : null;
+                marker.transform.localPosition = tile != null ? tile.center : new Vector3(position.x, 0, position.y);
+            }
+        }
     }
 
     /// <summary>
@@ -100,11 +108,13 @@ public class BoardCreator : MonoBehaviour
             CreateSaveDirectory();
 
         LevelData board = ScriptableObject.CreateInstance<LevelData>();
-        board.tiles = new List<Vector3>(tiles.Count);
-        foreach (Tile t in tiles.Values)
-            board.tiles.Add(new Vector3(t.pos.x, t.height, t.pos.y));
+        board.tiles = new List<Vector3>(this.tiles.Count);
+        foreach (Tile tileToSave in this.tiles.Values)
+        {
+            board.tiles.Add(new Vector3(tileToSave.pos.x, tileToSave.height, tileToSave.pos.y));
+        }
 
-        string fileName = string.Format("Assets/Resources/Boards/{1}.asset", filePath, name);
+        string fileName = string.Format("Assets/Resources/Boards/{1}.asset", filePath, this.fileName);
         AssetDatabase.CreateAsset(board, fileName);
     }
 
@@ -113,17 +123,41 @@ public class BoardCreator : MonoBehaviour
     /// </summary>
     public void Load()
     {
-        if (levelData != null) {
+        if (fileToLoad != null) {
             // we clear the board
             Clear();
 
             // we load every tile describe in the level data
-            foreach (Vector3 tileVector in levelData.tiles)
+            foreach (Vector3 tileVector in fileToLoad.tiles)
             {
                 Tile tile = Create();
                 tile.Load(tileVector);
                 tiles.Add(tile.pos, tile);
             }
+
+            this.fileName = fileToLoad.name;
+        }
+    }
+
+    /// <summary>
+    /// Update the array of positions to grow / shrink
+    /// </summary>
+    /// <param name="positions">An array of positions</param>
+    public void setPositions(Point[] positions)
+    {
+        this.positions = positions;
+    }
+
+    /// <summary>
+    /// Change the height of multiple tiles
+    /// </summary>
+    /// <param name="positions">An array of positions of tiles</param>
+    /// <param name="direction">Positive for Grow, negative for Shrink</param>
+    void LevelMultiple(Point[] positions, int direction = 1)
+    {
+        for (int i = 0; i < positions.Length; i++)
+        {
+            LevelSingle(positions[i], direction);
         }
     }
 
@@ -142,33 +176,18 @@ public class BoardCreator : MonoBehaviour
     }
 
     /// <summary>
-    /// Grow all the tiles in the rectangle
+    /// Level all the tiles in the rectangle
     /// </summary>
     /// <param name="rect">The rectangle</param>
-    void GrowRect(Rect rect)
+    /// <param name="direction">Positive for Grow, negative for Shrink</param>
+    void LevelRect(Rect rect, int direction = 1)
     {
         for (int y = (int)rect.yMin; y < (int)rect.yMax; ++y)
         {
             for (int x = (int)rect.xMin; x < (int)rect.xMax; ++x)
             {
-                Point p = new Point(x, y);
-                GrowSingle(p);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Shrink all the tiles in the rectangle
-    /// </summary>
-    /// <param name="rect">The rectangle</param>
-    void ShrinkRect(Rect rect)
-    {
-        for (int y = (int)rect.yMin; y < (int)rect.yMax; ++y)
-        {
-            for (int x = (int)rect.xMin; x < (int)rect.xMax; ++x)
-            {
-                Point p = new Point(x, y);
-                ShrinkSingle(p);
+                Point point = new Point(x, y);
+                LevelSingle(point, direction);
             }
         }
     }
@@ -177,7 +196,7 @@ public class BoardCreator : MonoBehaviour
     /// Instantiate a tile prefab linked to the script at the attribute "pos" position
     /// </summary>
     /// <returns>The tile instantiated</returns>
-    Tile Create()
+    protected Tile Create()
     {
         GameObject instance = Instantiate(tileViewPrefab) as GameObject;
         instance.transform.parent = transform;
@@ -189,7 +208,7 @@ public class BoardCreator : MonoBehaviour
     /// </summary>
     /// <param name="p">The point</param>
     /// <returns>The tile instantiated or already existing</returns>
-    Tile GetOrCreate(Point p)
+    protected Tile GetOrCreate(Point p)
     {
         if (tiles.ContainsKey(p))
             return tiles[p];
@@ -202,48 +221,34 @@ public class BoardCreator : MonoBehaviour
     }
 
     /// <summary>
-    /// Grow the tile at the position
+    /// Level a single tile
     /// </summary>
-    /// <param name="p">The position</param>
-    void GrowSingle(Point p)
+    /// <param name="point">Position of th tile</param>
+    /// <param name="direction">Positive for Grow, negative for Shrink</param>
+    protected void LevelSingle(Point point, int direction = 1)
     {
-        Tile t = GetOrCreate(p);
-        if (t.height < height)
-            t.Grow();
-    }
-
-    /// <summary>
-    /// Shrink the tile at the position
-    /// </summary>
-    /// <param name="p">The position</param>
-    void ShrinkSingle(Point p)
-    {
-        if (!tiles.ContainsKey(p))
-            return;
-
-        Tile t = tiles[p];
-        t.Shrink();
-
-        if (t.height <= 0)
+        if (direction > 0)
         {
-            tiles.Remove(p);
-            DestroyImmediate(t.gameObject);
-        }
-    }
+            Tile tile = GetOrCreate(point);
 
-    /// <summary>
-    /// Lazy getter of the marker
-    /// </summary>
-    Transform marker
-    {
-        get
-        {
-            if (_marker == null)
+            if (tile.height < this.height)
             {
-                GameObject instance = Instantiate(tileSelectionIndicatorPrefab) as GameObject;
-                _marker = instance.transform;
+                tile.Grow();
             }
-            return _marker;
+        }
+        else
+        {
+            if (tiles.ContainsKey(point))
+            {
+                Tile tile = tiles[point];
+                tile.Shrink();
+
+                if (tile.height <= 0)
+                {
+                    tiles.Remove(point);
+                    DestroyImmediate(tile.gameObject);
+                }
+            }
         }
     }
 
