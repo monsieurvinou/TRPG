@@ -4,7 +4,7 @@ Unity project to create the base for a tactical RPG in the Final Fantasy Tactic 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License
 
 ## Acknowledgments
 
