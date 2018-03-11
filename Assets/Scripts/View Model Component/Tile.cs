@@ -5,6 +5,9 @@ public class Tile : MonoBehaviour
     public const float stepHeight = 0.25f;
     public Point pos;
     public int height;
+    public GameObject content;
+    [HideInInspector] public Tile prev;
+    [HideInInspector] public int distance;
 
     // Convenience property to get the center of the object
     public Vector3 center { get { return new Vector3(pos.x, height * stepHeight, pos.y); } }
