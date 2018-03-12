@@ -223,6 +223,24 @@ Prefab:
       value: 
       objectReference: {fileID: 11400000, guid: ceb12243c6f94b14b836df19d09d5d46,
         type: 2}
+    - target: {fileID: 114998108750422306, guid: 86e681d621e14564eb5b12bb7c44e53f,
+        type: 2}
+      propertyPath: heroPrefab
+      value: 
+      objectReference: {fileID: 1811723559108738, guid: 167822e4db96b5a4990f9ee16048351d,
+        type: 2}
+    - target: {fileID: 4245046409287450, guid: 86e681d621e14564eb5b12bb7c44e53f, type: 2}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4381740554882884, guid: 86e681d621e14564eb5b12bb7c44e53f, type: 2}
+      propertyPath: m_LocalRotation.y
+      value: -0.38268343
+      objectReference: {fileID: 0}
+    - target: {fileID: 4381740554882884, guid: 86e681d621e14564eb5b12bb7c44e53f, type: 2}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -45
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 86e681d621e14564eb5b12bb7c44e53f, type: 2}
   m_IsPrefabParent: 0
